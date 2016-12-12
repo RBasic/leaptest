@@ -10,19 +10,12 @@ public class DrawLine : MonoBehaviour
     private Vector3 mousePos;
 
     public GameObject bout;
-
-    [SerializeField]
-    private GameObject startGameObject;
-    [SerializeField]
-    private Collider2D colliderSpell;
     
     [Header("Colors")]
     [SerializeField]
-    private Color colorStart;
-    [SerializeField]
-    private Color colorEnd;
-
-    private bool startSpell = false;
+    private Color colorLine;
+ 
+    private bool starTouched = false;
 
     // Structure for line points
     struct myLine
@@ -37,8 +30,9 @@ public class DrawLine : MonoBehaviour
         line = gameObject.AddComponent<LineRenderer>();
         line.material = new Material(Shader.Find("Particles/Additive"));
         line.SetVertexCount(0);
-        line.SetWidth(0.1f, 0.05f);
-        line.SetColors(colorStart, colorEnd);
+
+        line.SetWidth(0.01f, 0.01f);
+        line.SetColors(colorLine, colorLine);
         line.useWorldSpace = true;
         pointsList = new List<Vector3>();
         //        renderer.material.SetTextureOffset(
@@ -48,7 +42,6 @@ public class DrawLine : MonoBehaviour
     void Update()
     {
 
-        line.SetColors(Color.green, Color.green);
         line.SetWidth(0.01f, 0.01f);
 
         mousePos = bout.transform.position;
@@ -56,17 +49,23 @@ public class DrawLine : MonoBehaviour
         var ray = Camera.main.ScreenPointToRay(vec3);
         var hit = Physics2D.GetRayIntersection(ray);
 
-        if (!startSpell)
-        {
-            if (hit.collider != null && hit == startGameObject)
+       
+            Debug.Log("hit = " + hit.collider);
+            if (hit.collider != null && hit.collider == GameManager.instance.getCurrentConstellation().getCurrentStar().GetComponent<CircleCollider2D>())
             {
-                startSpell = true;
-                Debug.Log("start spell ! ");
-            }
-        }
-        else
-        {
+            starTouched = true;
+                if (GameManager.instance.getCurrentConstellation().setCurrentStar())
+                {
+                    //changer constellation;
+                    Debug.Log("FINI !");
 
+                }
+
+            }
+
+
+        if (starTouched)
+        {
             if (!pointsList.Contains(mousePos))
             {
                 pointsList.Add(mousePos);
@@ -74,22 +73,22 @@ public class DrawLine : MonoBehaviour
                 line.SetVertexCount(pointsList.Count);
                 line.SetPosition(pointsList.Count - 1, (Vector3)pointsList[pointsList.Count - 1]);
 
-              
-                startGameObject.transform.position = mousePos;
-                startGameObject.transform.localScale = new Vector3(0.1f,0.1f,0.1f);
-
-
                 if (hit.collider != null && hit.collider == GameManager.instance.getCurrentConstellation().getColliderConstellation())
                 {
                     Debug.Log("coucou");
-                }
+                    line.SetColors(colorLine, colorLine);
 
-                if (isLineCollide())
+
+                }
+                else
                 {
                     line.SetColors(Color.red, Color.red);
+                    GameManager.instance.getOutColldr().SetActive(true);
                 }
+
             }
         }
+        
     }
     //    -----------------------------------    
     // Following method checks is currentLine(line drawn by last two points) collided with line
@@ -113,8 +112,6 @@ public class DrawLine : MonoBehaviour
             myLine currentLine;
             currentLine.StartPoint = (Vector3)pointsList[pointsList.Count - 2];
             currentLine.EndPoint = (Vector3)pointsList[pointsList.Count - 1];
-            if (isLinesIntersect(lines[i], currentLine))
-                return true;
         }
         return false;
     }
@@ -125,21 +122,5 @@ public class DrawLine : MonoBehaviour
     {
         return (pointA.x == pointB.x && pointA.y == pointB.y);
     }
-    //    -----------------------------------    
-    //    Following method checks whether given two line intersect or not
-    //    -----------------------------------    
-    private bool isLinesIntersect(myLine L1, myLine L2)
-    {
-        if (checkPoints(L1.StartPoint, L2.StartPoint) ||
-            checkPoints(L1.StartPoint, L2.EndPoint) ||
-            checkPoints(L1.EndPoint, L2.StartPoint) ||
-            checkPoints(L1.EndPoint, L2.EndPoint))
-            return false;
-
-        return ((Mathf.Max(L1.StartPoint.x, L1.EndPoint.x) >= Mathf.Min(L2.StartPoint.x, L2.EndPoint.x)) &&
-            (Mathf.Max(L2.StartPoint.x, L2.EndPoint.x) >= Mathf.Min(L1.StartPoint.x, L1.EndPoint.x)) &&
-            (Mathf.Max(L1.StartPoint.y, L1.EndPoint.y) >= Mathf.Min(L2.StartPoint.y, L2.EndPoint.y)) &&
-            (Mathf.Max(L2.StartPoint.y, L2.EndPoint.y) >= Mathf.Min(L1.StartPoint.y, L1.EndPoint.y))
-         );
-    }
+  
 }
