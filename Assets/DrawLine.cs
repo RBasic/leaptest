@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using Leap;
 
 public class DrawLine : MonoBehaviour
 {
@@ -17,6 +18,8 @@ public class DrawLine : MonoBehaviour
  
     private bool starTouched = false;
 
+    public Controller c;
+
     // Structure for line points
     struct myLine
     {
@@ -27,6 +30,7 @@ public class DrawLine : MonoBehaviour
     void Awake()
     {
         // Create line renderer component and set its property
+        /*
         line = gameObject.AddComponent<LineRenderer>();
         line.material = new Material(Shader.Find("Particles/Additive"));
         line.SetVertexCount(0);
@@ -34,11 +38,15 @@ public class DrawLine : MonoBehaviour
         line.SetWidth(0.01f, 0.01f);
         line.SetColors(colorLine, colorLine);
         line.useWorldSpace = true;
-        pointsList = new List<Vector3>();
+        pointsList = new List<Vector3>();*/
+        addLine();
         //        renderer.material.SetTextureOffset(
     }
     //    -----------------------------------   
-
+    void Start()
+    {
+        c = new Controller();
+    }
     void Update()
     {
 
@@ -49,46 +57,85 @@ public class DrawLine : MonoBehaviour
         var ray = Camera.main.ScreenPointToRay(vec3);
         var hit = Physics2D.GetRayIntersection(ray);
 
-       
-            Debug.Log("hit = " + hit.collider);
+
+        if (!GameManager.instance.getLoose() && !GameManager.instance.getWin())
+        {
             if (hit.collider != null && hit.collider == GameManager.instance.getCurrentConstellation().getCurrentStar().GetComponent<CircleCollider2D>())
             {
-            starTouched = true;
+                starTouched = true;
                 if (GameManager.instance.getCurrentConstellation().setCurrentStar())
                 {
-                    //changer constellation;
-                    Debug.Log("FINI !");
-
-                }
-
-            }
-
-
-        if (starTouched)
-        {
-            if (!pointsList.Contains(mousePos))
-            {
-                pointsList.Add(mousePos);
-
-                line.SetVertexCount(pointsList.Count);
-                line.SetPosition(pointsList.Count - 1, (Vector3)pointsList[pointsList.Count - 1]);
-
-                if (hit.collider != null && hit.collider == GameManager.instance.getCurrentConstellation().getColliderConstellation())
-                {
-                    Debug.Log("coucou");
-                    line.SetColors(colorLine, colorLine);
-
-
-                }
-                else
-                {
-                    line.SetColors(Color.red, Color.red);
-                    GameManager.instance.getOutColldr().SetActive(true);
+                    GameManager.instance.setWin(true);
+                    GameManager.instance.winInstructions();
+                    pointsList.Clear();
+                    line.SetVertexCount(pointsList.Count);
+                   
                 }
 
             }
         }
+
+            if (starTouched)
+            {
+                if (!pointsList.Contains(mousePos))
+                {
+                    pointsList.Add(mousePos);
+
+                    line.SetVertexCount(pointsList.Count);
+                    line.SetPosition(pointsList.Count - 1, (Vector3)pointsList[pointsList.Count - 1]);
+
+                    if (hit.collider != null)// && hit.collider == GameManager.instance.getCurrentConstellation().getColliderConstellation())
+                    {
+                        line.SetColors(colorLine, colorLine);
+
+                    }
+                    else
+                    {
+                        if (!GameManager.instance.getWin())
+                        {
+                            line.SetColors(Color.red, Color.red);
+                            GameManager.instance.setLoose(true);
+                            // GameManager.instance.getOutColldr().SetActive(true);
+                            GameManager.instance.looseInstructions();
+                        }
+                    }
+
+                }
+            }
         
+        if (GameManager.instance.getLoose() || GameManager.instance.getWin())
+        {
+            if (c.IsConnected)
+            { //controller is a Controller object
+                Frame frame = c.Frame(); //The latest frame
+                if (frame.Hands.Count > 1)
+                {
+                    List<Hand> hands = frame.Hands;
+                    Hand firstHand = hands[0];
+                    Hand secondHand = hands[1];
+                 
+                    if (firstHand.GrabStrength == 1.0f && secondHand.GrabStrength == 1.0f)
+                    {
+                        if (GameManager.instance.getWin())
+                        {
+                            GameManager.instance.setWin(false);
+                            GameManager.instance.changeCurrentConstellation();
+                            pointsList.Clear();
+                            line.SetVertexCount(pointsList.Count);
+                            starTouched = false;
+                        }
+                        else if (GameManager.instance.getLoose())
+                        {
+                            GameManager.instance.setLoose(false);
+                            GameManager.instance.reload();
+                            pointsList.Clear();
+                            line.SetVertexCount(pointsList.Count);
+                            starTouched = false;
+                        }
+                    }
+                }
+            }
+        }
     }
     //    -----------------------------------    
     // Following method checks is currentLine(line drawn by last two points) collided with line
@@ -123,4 +170,15 @@ public class DrawLine : MonoBehaviour
         return (pointA.x == pointB.x && pointA.y == pointB.y);
     }
   
+    private void addLine()
+    {
+        line = gameObject.AddComponent<LineRenderer>();
+        line.material = new Material(Shader.Find("Particles/Additive"));
+        line.SetVertexCount(0);
+
+        line.SetWidth(0.01f, 0.01f);
+        line.SetColors(colorLine, colorLine);
+        line.useWorldSpace = true;
+        pointsList = new List<Vector3>();
+    }
 }

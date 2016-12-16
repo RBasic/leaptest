@@ -20,8 +20,23 @@ public class Constellation : MonoBehaviour {
         
 	}
 	
-	// Update is called once per frame
-	void Update () {
+    public void reload()
+    {
+        for(int i = 0; i < stars.Count; i++)
+        {
+            stars[i].GetComponentInChildren<CircleCollider2D>().enabled = true;
+            stars[i].GetComponentInChildren<MeshRenderer>().enabled = true;
+
+            stars[i].SetActive(false);
+            
+        }
+        index = 0;
+        currentStar = stars[index];
+        currentStar.SetActive(true);
+
+    }
+    // Update is called once per frame
+    void Update () {
 
         //Debug.Log("index = " + index);
 	}
